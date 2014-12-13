@@ -7,8 +7,14 @@ seeing what's going wrong when making API calls from a client.
 To use, run `./proxy.py` (takes an optional port argument).
 
 From the client side, set the proxy using 
-`export HTTP_PROXY=http://localhost:8000`
+`export HTTP_PROXY=http://localhost:8000/`
 (assuming default port). 
+
+Or just do:
+
+```
+HTTP_PROXY=http://localhost:8000/ curl -v http://bot.whatismyipaddress.com/
+```
 
 You'll get something like this:
 
