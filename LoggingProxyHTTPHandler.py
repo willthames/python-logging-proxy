@@ -5,12 +5,14 @@ import StringIO
 
 
 def rewrite_headers(headers):
+    # Don't accept stuff that original request didn't accept
+    if not 'accept-encoding' in headers:
+        headers['accept-encoding'] = 'identity'
     result = dict()
     for k, v in headers.items():
         newk = '-'.join(map(lambda x: x.capitalize(), k.split('-')))
         result[newk] = v
     return result
-
 
 class LoggingProxyHTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -61,24 +63,21 @@ class LoggingProxyHTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.log_response(response)
 
     def do_GET(self):
-        headers=rewrite_headers(self.headers)
-        # Don't accept stuff that original request didn't accept
-        if not 'accept-encoding' in headers:
-            headers['accept-encoding'] = 'identity'
+        headers = rewrite_headers(self.headers)
         response = requests.get(self.path, headers=headers)
-
         self.respond(response)
 
     def do_POST(self):
-        headers=rewrite_headers(self.headers)
-        # Don't accept stuff that original request didn't accept
-        if not 'accept-encoding' in headers:
-            headers['accept-encoding'] = 'identity'
-        response = requests.post(self.path, headers=headers, data=read(self.rfile))
+        headers = rewrite_headers(self.headers)
+        self.data = self.rfile.read(int(self.headers['Content-Length']))
+        response = requests.post(self.path, headers=headers, data=self.data)
         self.respond(response)
 
     def do_PUT(self):
-        self.do_POST()
+        headers = rewrite_headers(self.headers)
+        self.data = self.rfile.read(int(self.headers['Content-Length']))
+        response = requests.put(self.path, headers=headers, data=self.data)
+        self.respond(response)
 
     def log_error(format, *args):
         pass
@@ -90,8 +89,7 @@ class LoggingProxyHTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             print "{0} = {1}".format(k, v)
         print
         if self.command in ['POST', 'PUT']:
-            for line in self.rfile:
-                print line
+            print self.data
         print "*** END REQUEST ***"
 
     def log_response(self, response):
